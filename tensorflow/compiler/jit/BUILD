@@ -17,13 +17,13 @@ package_group(
 package(
     default_visibility = [
         ":internal",
-        "//tensorflow/compiler/plugin/executor:__pkg__",
     ],
 )
 
 load("//tensorflow:tensorflow.bzl", "cc_header_only_library")
 load("//tensorflow:tensorflow.bzl", "tf_kernel_library")
 load("@local_config_cuda//cuda:build_defs.bzl", "if_cuda")
+load("@local_config_cuda//cuda:build_defs.bzl", "if_cuda_is_configured")
 
 # Target that bundles up the XLA CPU and GPU JIT devices.
 cc_library(
@@ -32,10 +32,10 @@ cc_library(
     deps = [
         ":xla_cpu_device",
         ":xla_cpu_jit",
+    ] + if_cuda_is_configured([
         ":xla_gpu_device",
         ":xla_gpu_jit",
-        "//tensorflow/compiler/plugin",
-    ],
+    ]),
     alwayslink = 1,
 )
 
@@ -95,6 +95,17 @@ cc_library(
         "//tensorflow/core:lib",
     ],
     alwayslink = 1,
+)
+
+cc_library(
+    name = "xla_interpreter_device",
+    srcs = ["xla_interpreter_device.cc"],
+    deps = [
+        ":xla_device",
+        "//tensorflow/compiler/jit/kernels:xla_device_launch_op",
+        "//tensorflow/compiler/tf2xla:xla_compiler",
+    ],
+    alwayslink = True,
 )
 
 # Internal targets below this point.

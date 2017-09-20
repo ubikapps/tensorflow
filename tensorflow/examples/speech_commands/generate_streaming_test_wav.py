@@ -46,8 +46,8 @@ import sys
 import numpy as np
 import tensorflow as tf
 
-import tensorflow.examples.speech_commands.input_data as input_data
-import tensorflow.examples.speech_commands.models as models
+import input_data
+import models
 
 FLAGS = None
 
@@ -234,7 +234,7 @@ if __name__ == '__main__':
   parser.add_argument(
       '--window_size_ms',
       type=float,
-      default=20.0,
+      default=30.0,
       help='How long each spectrogram timeslice is',)
   parser.add_argument(
       '--window_stride_ms',

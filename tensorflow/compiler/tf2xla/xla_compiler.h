@@ -85,17 +85,9 @@ class XlaCompiler {
       // Argument is a compile-time constant. No associated runtime parameter.
       kConstant,
 
-      // Argument is a Variable resource. Has an associated runtime parameter
-      // iff `initialized` is true.
-      kVariable,
-
-      // Argument is a TensorArray resource. Has an associated runtime parameter
-      // iff `initialized` is true.
-      kTensorArray,
-
-      // Argument is a Stack resource. Has an associated runtime parameter
-      // iff `initialized` is true.
-      kStack,
+      // Argument is a Variable, TensorArray, or Stack resource. Has an
+      // associated runtime parameter iff `initialized` is true.
+      kResource,
 
       // Argument is a run-time parameter.
       kParameter,
@@ -118,11 +110,14 @@ class XlaCompiler {
     // The name of this argument, used for debugging.
     string name;
 
-    // For a kVariable or kTensorArray, has this resource been initialized?
+    // For a kResource, what kind of resource is it?
+    XlaResource::Kind resource_kind = XlaResource::kInvalid;
+
+    // For a kResource, has this resource been initialized?
     bool initialized = false;
 
-    // For a kTensorArray, what is the array's declared size? (Used for lazy
-    // initialization.)
+    // For a TensorArray or Stack resource, what is the array's declared size?
+    // (Used for lazy initialization.)
     int64 tensor_array_size = -1;
 
     bool operator==(const Argument& other) const;
@@ -267,22 +262,15 @@ class XlaCompiler {
                       const std::vector<Argument>& args,
                       CompilationResult* result);
 
-  // Takes `result` which has been compiled from a Tensorflow subgraph to a
-  // XLA computation already, and generates an XLA LocalExecutable `executable`.
-  Status BuildExecutable(const CompilationResult& result,
-                         std::unique_ptr<xla::LocalExecutable>* executable);
-
-  const Options& options() const { return options_; }
-  xla::Client* client() const { return options_.client; }
-  XlaCompilationDevice* device() const { return device_; }
-  const DeviceMgr* device_mgr() const { return &device_mgr_; }
-  FunctionLibraryRuntime* flib_runtime() const { return flib_runtime_.get(); }
-
   // Retrieves the channel handle associated with `key`. Allocates
   // a new channel handle if none exists.
   // Channel handles can be used to communicate between different computations.
   // Computations that communicate should be compiled with the same XlaCompiler.
   Status GetChannelHandle(const string& key, xla::ChannelHandle* channel);
+
+  const Options& options() const { return options_; }
+  xla::Client* client() const { return options_.client; }
+  FunctionLibraryRuntime* flib_runtime() const { return flib_runtime_; }
 
  private:
   Options options_;
@@ -303,9 +291,11 @@ class XlaCompiler {
   // library and runtime for functions created as part of the functionalize
   // control flow transformation.
   std::unique_ptr<FunctionLibraryDefinition> local_flib_def_;
-  std::unique_ptr<FunctionLibraryRuntime> local_flib_runtime_;
+  std::unique_ptr<ProcessFunctionLibraryRuntime> pflr_;
+  std::unique_ptr<ProcessFunctionLibraryRuntime> local_pflr_;
 
-  std::unique_ptr<FunctionLibraryRuntime> flib_runtime_;
+  FunctionLibraryRuntime* local_flib_runtime_;  // owned by local_pflr_.
+  FunctionLibraryRuntime* flib_runtime_;        // owned by pflr_.
 
   struct SignatureHash {
     uint64 operator()(

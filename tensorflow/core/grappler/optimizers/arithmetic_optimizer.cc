@@ -138,7 +138,10 @@ bool ArithmeticOptimizer::CanDedup(const NodeDef& node) const {
   if (nodes_to_preserve_.find(node.name()) != nodes_to_preserve_.end()) {
     return false;
   }
-  if (IsEnter(node) || IsPlaceholder(node)) {
+  if (IsEnter(node) || IsExit(node) || IsPlaceholder(node)) {
+    return false;
+  }
+  if (node.device().find("SPU") != string::npos) {
     return false;
   }
   const OpDef* op_def = nullptr;
@@ -177,7 +180,7 @@ void ArithmeticOptimizer::DedupComputations(GraphDef* optimized_graph) const {
       if (rep == node) {
         continue;
       }
-      const std::set<NodeDef*> fanouts = map.GetOutputs(node->name());
+      const std::set<NodeDef*>& fanouts = map.GetOutputs(node->name());
       for (NodeDef* fanout : fanouts) {
         for (string& name : *fanout->mutable_input()) {
           int position;
@@ -190,7 +193,7 @@ void ArithmeticOptimizer::DedupComputations(GraphDef* optimized_graph) const {
             } else {
               name = strings::StrCat("^", rep->name());
             }
-            map.UpdateOutput(nodename, fanout->name(), name);
+            map.AddOutput(rep->name(), fanout->name());
           }
         }
       }

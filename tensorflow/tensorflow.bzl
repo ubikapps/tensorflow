@@ -172,6 +172,8 @@ def tf_copts():
               "-std=c++11",
               "-DTF_LEAN_BINARY",
               "-O2",
+              "-Wno-narrowing",
+              "-fomit-frame-pointer",
           ],
           clean_dep("//tensorflow:darwin"): [],
           clean_dep("//tensorflow:windows"): WIN_COPTS,
@@ -770,13 +772,13 @@ def _py_wrap_cc_impl(ctx):
     fail("Exactly one SWIG source file label must be specified.", "srcs")
   module_name = ctx.attr.module_name
   src = ctx.files.srcs[0]
-  inputs = set([src])
+  inputs = depset([src])
   inputs += ctx.files.swig_includes
   for dep in ctx.attr.deps:
     inputs += dep.cc.transitive_headers
   inputs += ctx.files._swiglib
   inputs += ctx.files.toolchain_deps
-  swig_include_dirs = set(_get_repository_roots(ctx, inputs))
+  swig_include_dirs = depset(_get_repository_roots(ctx, inputs))
   swig_include_dirs += sorted([f.dirname for f in ctx.files._swiglib])
   args = [
       "-c++", "-python", "-module", module_name, "-o", ctx.outputs.cc_out.path,
@@ -793,7 +795,7 @@ def _py_wrap_cc_impl(ctx):
       outputs=outputs,
       mnemonic="PythonSwig",
       progress_message="SWIGing " + src.path)
-  return struct(files=set(outputs))
+  return struct(files=depset(outputs))
 
 
 _py_wrap_cc = rule(
@@ -866,7 +868,7 @@ def _get_repository_roots(ctx, files):
 
 # Bazel rule for collecting the header files that a target depends on.
 def _transitive_hdrs_impl(ctx):
-  outputs = set()
+  outputs = depset()
   for dep in ctx.attr.deps:
     outputs += dep.cc.transitive_headers
   return struct(files=outputs)
@@ -888,9 +890,28 @@ def transitive_hdrs(name, deps=[], **kwargs):
 
 # Create a header only library that includes all the headers exported by
 # the libraries in deps.
-def cc_header_only_library(name, deps=[], **kwargs):
+def cc_header_only_library(name, deps=[], includes=[], **kwargs):
   _transitive_hdrs(name=name + "_gather", deps=deps)
-  native.cc_library(name=name, hdrs=[":" + name + "_gather"], **kwargs)
+
+  # We could generalize the following, but rather than complicate things
+  # here, we'll do the minimal use case for now, and hope bazel comes up
+  # with a better solution before too long.  We'd expect it to compute
+  # the right include path by itself, but it doesn't, possibly because
+  # _transitive_hdrs lost some information about the include path.
+  if "@nsync//:nsync_headers" in deps:
+    # Buiding tensorflow from @org_tensorflow finds this two up.
+    nsynch = "../../external/nsync/public"
+    # Building tensorflow from elsewhere finds it four up.
+    # Note that native.repository_name() is not yet available in TF's Kokoro.
+    if REPOSITORY_NAME != "@":
+      nsynch = "../../" + nsynch
+    includes = includes[:]
+    includes.append(nsynch)
+
+  native.cc_library(name=name,
+                    hdrs=[":" + name + "_gather"],
+                    includes=includes,
+                    **kwargs)
 
 
 def tf_custom_op_library_additional_deps():
@@ -907,10 +928,10 @@ def tf_custom_op_library_additional_deps():
 # tf_collected_deps will be the union of the deps of the current target
 # and the tf_collected_deps of the dependencies of this target.
 def _collect_deps_aspect_impl(target, ctx):
-  alldeps = set()
+  alldeps = depset()
   if hasattr(ctx.rule.attr, "deps"):
     for dep in ctx.rule.attr.deps:
-      alldeps = alldeps | set([dep.label])
+      alldeps = alldeps | depset([dep.label])
       if hasattr(dep, "tf_collected_deps"):
         alldeps = alldeps | dep.tf_collected_deps
   return struct(tf_collected_deps=alldeps)
@@ -959,6 +980,7 @@ check_deps = rule(
 def tf_custom_op_library(name, srcs=[], gpu_srcs=[], deps=[]):
   cuda_deps = [
       clean_dep("//tensorflow/core:stream_executor_headers_lib"),
+      "@local_config_cuda//cuda:cuda_headers",
       "@local_config_cuda//cuda:cudart_static",
   ]
   deps = deps + tf_custom_op_library_additional_deps()
@@ -1271,6 +1293,16 @@ def tf_version_info_genrule():
       "$(location //tensorflow/tools/git:gen_git_source.py) --generate $(SRCS) \"$@\"",
       local=1,
       tools=[clean_dep("//tensorflow/tools/git:gen_git_source.py")],)
+
+
+def tf_py_build_info_genrule():
+  native.genrule(
+      name="py_build_info_gen",
+      outs=["platform/build_info.py"],
+      cmd=
+      "$(location //tensorflow/tools/build_info:gen_build_info.py) --raw_generate \"$@\" --build_config " + if_cuda("cuda", "cpu"),
+      local=1,
+      tools=[clean_dep("//tensorflow/tools/build_info:gen_build_info.py")],)
 
 
 def cc_library_with_android_deps(deps,

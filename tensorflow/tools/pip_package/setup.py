@@ -32,11 +32,11 @@ from setuptools.dist import Distribution
 _VERSION = '1.3.0'
 
 REQUIRED_PACKAGES = [
+    'enum34 >= 1.1.6',
     'numpy >= 1.12.1',
     'six >= 1.10.0',
     'protobuf >= 3.3.0',
     'tensorflow-tensorboard >= 0.1.0, < 0.2.0',
-    'autograd >= 1.1.11',
 ]
 
 project_name = 'tensorflow'
@@ -183,7 +183,8 @@ headers = (list(find_files('*.h', 'tensorflow/core')) +
            list(find_files('*.h', 'tensorflow/stream_executor')) +
            list(find_files('*.h', 'google/protobuf_archive/src')) +
            list(find_files('*', 'third_party/eigen3')) +
-           list(find_files('*', 'external/eigen_archive')))
+           list(find_files('*', 'external/eigen_archive')) +
+           list(find_files('*.h', 'external/nsync/public')))
 
 
 setup(
@@ -191,7 +192,7 @@ setup(
     version=_VERSION.replace('-', ''),
     description='TensorFlow helps the tensors flow',
     long_description='',
-    url='http://tensorflow.org/',
+    url='https://www.tensorflow.org/',
     author='Google Inc.',
     author_email='opensource@google.com',
     # Contained modules and scripts.
@@ -222,10 +223,18 @@ setup(
         'Intended Audience :: Education',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
+        'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Mathematics',
-        'Topic :: Software Development :: Libraries :: Python Modules',
+        'Topic :: Scientific/Engineering :: Artificial Intelligence',
+        'Topic :: Software Development',
         'Topic :: Software Development :: Libraries',
+        'Topic :: Software Development :: Libraries :: Python Modules',
     ],
     license='Apache 2.0',
     keywords='tensorflow tensor machine learning',)
