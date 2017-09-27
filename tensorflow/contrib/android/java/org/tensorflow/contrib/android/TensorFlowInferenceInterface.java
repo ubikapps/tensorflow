@@ -187,8 +187,12 @@ public class TensorFlowInferenceInterface {
   public void close() {
     closeFeeds();
     closeFetches();
-    sess.close();
-    g.close();
+    if(sess != null) {
+      sess.close();
+    }
+    if(g != null) {
+      g.close();
+    }
     if (runStats != null) {
       runStats.close();
     }

@@ -28,7 +28,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.0'
+        classpath 'com.android.tools.build:gradle:2.3.3'
         classpath 'org.apache.httpcomponents:httpclient:4.5.2'
     }
 }
@@ -40,7 +40,7 @@ allprojects {
 }
 
 // set to 'bazel', 'cmake', 'makefile', 'none'
-def nativeBuildSystem = 'bazel'
+def nativeBuildSystem = 'makefile'
 
 // Controls output directory in APK and CPU type for Bazel builds.
 // NOTE: Does not affect the Makefile build target API (yet), which currently
@@ -79,7 +79,7 @@ android {
 
     if (nativeBuildSystem == 'cmake') {
         defaultConfig {
-            applicationId = 'com.tensorflow.demo'
+            applicationId = 'org.tensorflow.demo'
             minSdkVersion 21
             targetSdkVersion 23
             ndk {
@@ -135,27 +135,32 @@ android {
     }
 }
 
-task buildNativeBazel(type: Exec) {
-    workingDir '../../..'
-    commandLine bazelLocation, 'build', '-c', 'opt',  \
-         'tensorflow/examples/android:tensorflow_native_libs',  \
-         '--crosstool_top=//external:android/crosstool',  \
-         '--cpu=' + cpuType,  \
-         '--host_crosstool_top=@bazel_tools//tools/cpp:toolchain'
-}
+//task buildNativeBazel(type: Exec) {
+//    workingDir '../../..'
+//    commandLine bazelLocation, 'build', '-c', 'opt',  \
+//         'tensorflow/examples/android:tensorflow_native_libs',  \
+//         '--crosstool_top=//external:android/crosstool',  \
+//         '--cpu=' + cpuType,  \
+//         '--host_crosstool_top=@bazel_tools//tools/cpp:toolchain'
+//}
 
-task buildNativeMake(type: Exec) {
-    environment "NDK_ROOT", android.ndkDirectory
+//task buildNativeMake(type: Exec) {
+//    environment "NDK_ROOT", android.ndkDirectory
     // Tip: install ccache and uncomment the following to speed up
     // builds significantly.
     // environment "CC_PREFIX", 'ccache'
-    workingDir '../../..'
-    commandLine 'tensorflow/contrib/makefile/build_all_android.sh',  \
-         '-s',  \
-         'tensorflow/contrib/makefile/sub_makefiles/android/Makefile.in',  \
-         '-t',  \
-         'libtensorflow_inference.so libtensorflow_demo.so'  \
+//    workingDir '../../..'
+//    commandLine 'tensorflow/contrib/makefile/build_all_android.sh',  \
+//         '-s',  \
+//         'tensorflow/contrib/makefile/sub_makefiles/android/Makefile.in',  \
+//         '-t',  \
+//         'libtensorflow_inference.so libtensorflow_demo.so'  \
          //, '-T'  // Uncomment to skip protobuf and speed up subsequent builds.
+//}
+
+task buildNativeMake(type: Exec) {
+    workingDir '../../..'
+    commandLine = ['cmd', '/C', 'start', 'makefile_helper.bat']
 }
 
 
@@ -173,7 +178,7 @@ tasks.whenTaskAdded { task ->
         if (task.name == 'assembleDebug') {
             task.dependsOn 'copyNativeLibs'
         }
-        if (task.name == 'assembleRelease') {
+       if (task.name == 'assembleRelease') {
             task.dependsOn 'copyNativeLibs'
         }
     }
