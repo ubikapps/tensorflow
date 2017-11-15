@@ -150,12 +150,45 @@ Notes:
    @{tf.variables_initializer} for more information.
 
 *  To inspect the variables in a checkpoint, you can use the
-   [`inspect_checkpoint`](https://cs.corp.google.com/#piper///depot/google3/third_party/tensorflow/python/tools/inspect_checkpoint.py)
+   [`inspect_checkpoint`](https://www.tensorflow.org/code/tensorflow/python/tools/inspect_checkpoint.py)
    library, particularly the `print_tensors_in_checkpoint_file` function.
 
 *  By default, `Saver` uses the value of the @{tf.Variable.name} property
    for each variable.  However, when you create a `Saver` object, you may
    optionally choose names for the variables in the checkpoint files.
+
+
+### Inspect variables in a checkpoint
+
+We can quickly inspect variables in a checkpoint with the 
+[`inspect_checkpoint`](https://www.tensorflow.org/code/tensorflow/python/tools/inspect_checkpoint.py) library.
+
+Continuing from the save/restore examples shown earlier:
+
+```python
+# import the inspect_checkpoint library
+from tensorflow.python.tools import inspect_checkpoint as chkp
+
+# print all tensors in checkpoint file
+chkp.print_tensors_in_checkpoint_file("/tmp/model.ckpt", tensor_name='', all_tensors=True)
+
+# tensor_name:  v1
+# [ 1.  1.  1.]
+# tensor_name:  v2
+# [-1. -1. -1. -1. -1.]
+
+# print only tensor v1 in checkpoint file
+chkp.print_tensors_in_checkpoint_file("/tmp/model.ckpt", tensor_name='v1', all_tensors=False)
+
+# tensor_name:  v1
+# [ 1.  1.  1.]
+
+# print only tensor v2 in checkpoint file
+chkp.print_tensors_in_checkpoint_file("/tmp/model.ckpt", tensor_name='v2', all_tensors=False)
+
+# tensor_name:  v2
+# [-1. -1. -1. -1. -1.]
+```
 
 
 <a name="models"></a>
@@ -205,7 +238,7 @@ For example, the following code suggests a typical way to use
 ```python
 export_dir = ...
 ...
-builder = tf.saved_model_builder.SavedModelBuilder(export_dir)
+builder = tf.saved_model.builder.SavedModelBuilder(export_dir)
 with tf.Session(graph=tf.Graph()) as sess:
   ...
   builder.add_meta_graph_and_variables(sess,
@@ -432,7 +465,7 @@ the same keys.  These `SignatureDef`s differ only in their outputs, as
 provided by the corresponding `ExportOutput` entry.  The inputs are always
 those provided by the `serving_input_receiver_fn`.
 An inference request may specify the head by name.  One head must be named
-using [`signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY`](https://cs.corp.google.com/#piper///depot/google3/third_party/tensorflow/python/saved_model/signature_constants.py)
+using [`signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY`](https://www.tensorflow.org/code/tensorflow/python/saved_model/signature_constants.py)
 indicating which `SignatureDef` will be served when an inference request
 does not specify one.
 
@@ -565,7 +598,7 @@ If you built TensorFlow from source code, you must run the following
 additional command to build `saved_model_cli`:
 
 ```
-$ blaze build third_party/tensorflow/python/tools:saved_model_cli
+$ bazel build tensorflow/python/tools:saved_model_cli
 ```
 
 ### Overview of commands
@@ -879,5 +912,6 @@ of checkpoints and assets:
 
 Each graph is associated with a specific set of tags, which enables
 identification during a load or restore operation.
+
 
 
