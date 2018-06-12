@@ -28,8 +28,9 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.0.0'
-        classpath 'org.apache.httpcomponents:httpclient:4.5.2'
+
+        classpath 'com.android.tools.build:gradle:3.0.1'
+        classpath 'org.apache.httpcomponents:httpclient:4.5.4'
     }
 }
 
@@ -178,7 +179,7 @@ tasks.whenTaskAdded { task ->
         if (task.name == 'assembleDebug') {
             task.dependsOn 'copyNativeLibs'
         }
-       if (task.name == 'assembleRelease') {
+        if (task.name == 'assembleRelease') {
             task.dependsOn 'copyNativeLibs'
         }
     }

@@ -115,7 +115,7 @@ class SinhArcsinh(transformed_distribution.TransformedDistribution):
       tailweight:  Tailweight parameter. Default is `1.0` (unchanged tailweight)
       distribution: `tf.Distribution`-like instance. Distribution that is
         transformed to produce this distribution.
-        Default is `ds.Normal(0., 1.)`.
+        Default is `tf.distributions.Normal(0., 1.)`.
         Must be a scalar-batch, scalar-event distribution.  Typically
         `distribution.reparameterization_type = FULLY_REPARAMETERIZED` or it is
         a function of non-trainable parameters. WARNING: If you backprop through
@@ -174,13 +174,12 @@ class SinhArcsinh(transformed_distribution.TransformedDistribution):
             skewness=skewness.dtype.as_numpy_dtype(0.),
             tailweight=tailweight, event_ndims=0)
 
-      # Make the Affine bijector, Z --> loc + scale * Z (2 / F_0(2))
+      # Make the AffineScalar bijector, Z --> loc + scale * Z (2 / F_0(2))
       c = 2 * scale / f_noskew.forward(ops.convert_to_tensor(2, dtype=dtype))
-      affine = bijectors.Affine(
+      affine = bijectors.AffineScalar(
           shift=loc,
-          scale_identity_multiplier=c,
-          validate_args=validate_args,
-          event_ndims=0)
+          scale=c,
+          validate_args=validate_args)
 
       bijector = bijectors.Chain([affine, f])
 

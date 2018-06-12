@@ -88,8 +88,8 @@ Status ValidateConfig(const tf2xla::Config& config) {
     TF_RETURN_IF_ERROR(CheckNameDuplicates("fetch", fetch.name(), &names));
   }
   TF_RETURN_IF_ERROR(CheckFeedFetchNameConflicts("fetch", names));
-  if (config.feed().empty() || config.fetch().empty()) {
-    return errors::InvalidArgument("feeds and fetches must be specified");
+  if (config.fetch().empty()) {
+    return errors::InvalidArgument("fetches must be specified");
   }
   return Status::OK();
 }
@@ -151,8 +151,15 @@ Status AddPlaceholdersForFeeds(
       Status status;
       Node* feed_node = g.AddNode(gd.node(0), &status);
       TF_RETURN_IF_ERROR(status);
-      info.data_type =
-          BaseType(feed_node->output_type(info.feed->id().output_index()));
+
+      if (info.feed->id().output_index() < feed_node->num_outputs()) {
+        info.data_type =
+            BaseType(feed_node->output_type(info.feed->id().output_index()));
+      } else {
+        return errors::InvalidArgument(
+            "Invalid output_index ", info.feed->id().output_index(),
+            " for feed node ", info.feed->id().node_name());
+      }
     }
   }
 
